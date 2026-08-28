@@ -103,7 +103,43 @@ def simulate_boris(m, q, r0, v0, B, dt, steps):
         np.array(energies)
     )
 
+# ==================================================
+# ANALYTICAL SOLUTION
+# ==================================================
 
+def analytical_solution(m, q, r0, v0, B, dt, steps):
+    """
+    Analytical solution for a charged particle
+    in a uniform magnetic field B = (0, 0, Bz).
+
+    This implementation assumes the initial velocity
+    is perpendicular to the magnetic field.
+    """
+
+    time = np.arange(1, steps + 1) * dt
+
+    # Cyclotron frequency
+    omega = q * B[2] / m
+
+    # Exact position
+    x = np.sin(omega * time) / omega
+    y = (np.cos(omega * time) - 1) / omega
+    z = np.zeros_like(time)
+
+    positions = np.column_stack((x, y, z))
+
+    # Exact velocity
+    vx = np.cos(omega * time)
+    vy = -np.sin(omega * time)
+    vz = np.zeros_like(time)
+
+    velocities = np.column_stack((vx, vy, vz))
+
+    # Exact kinetic energy
+    speed_squared = vx**2 + vy**2 + vz**2
+    energies = 0.5 * m * speed_squared
+
+    return positions, velocities, energies
 # ==================================================
 # PHYSICAL PARAMETERS
 # ==================================================
@@ -143,7 +179,10 @@ positions_boris, velocities_boris, energies_boris = simulate_boris(
     m, q, r0, v0, B, dt, steps
 )
 
-
+# Analytical solution
+positions_exact, velocities_exact, energies_exact = analytical_solution(
+    m, q, r0, v0, B, dt, steps
+)
 # ==================================================
 # ANALYSIS
 # ==================================================
@@ -167,6 +206,26 @@ print("Final position:", positions_boris[-1])
 print("Final velocity:", velocities_boris[-1])
 print("Initial kinetic energy:", initial_energy)
 print("Final kinetic energy:", energies_boris[-1])
+# ==================================================
+# NUMERICAL ERROR ANALYSIS
+# ==================================================
+
+# Position error for Euler
+error_euler = np.linalg.norm(
+    positions_euler - positions_exact,
+    axis=1
+)
+
+# Position error for Boris
+error_boris = np.linalg.norm(
+    positions_boris - positions_exact,
+    axis=1
+)
+
+print("\n========== NUMERICAL ERROR ==========")
+
+print("Final Euler position error:", error_euler[-1])
+print("Final Boris position error:", error_boris[-1])
 
 
 # ==================================================
@@ -186,7 +245,12 @@ plt.plot(
     positions_boris[:, 1],
     label="Boris"
 )
-
+plt.plot(
+    positions_exact[:, 0],
+    positions_exact[:, 1],
+    label="Analytical solution",
+    linestyle="--"
+)
 plt.xlabel("x")
 plt.ylabel("y")
 
@@ -217,11 +281,43 @@ plt.plot(
     energies_boris,
     label="Boris"
 )
-
+plt.plot(
+    time,
+    energies_exact,
+    label="Exact",
+    linestyle="--"
+)
 plt.xlabel("Time")
 plt.ylabel("Kinetic Energy")
 
 plt.title("Kinetic Energy: Euler vs Boris")
+
+plt.legend()
+plt.grid()
+
+plt.show()
+# ==================================================
+# PLOT NUMERICAL ERROR
+# ==================================================
+
+plt.figure()
+
+plt.plot(
+    time,
+    error_euler,
+    label="Euler"
+)
+
+plt.plot(
+    time,
+    error_boris,
+    label="Boris"
+)
+
+plt.xlabel("Time")
+plt.ylabel("Position Error")
+
+plt.title("Position Error: Euler vs Boris")
 
 plt.legend()
 plt.grid()
